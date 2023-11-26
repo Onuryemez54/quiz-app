@@ -77,11 +77,11 @@ h2 {
     background-color: #30468d;
 }
 
-.btn--success {
+.btn.btn--success {
     background-color: #04b421;
 }
 
-.btn--failed {
+.btn.btn--failed {
     background-color: #b41004 ;
 }
 
