@@ -4,102 +4,128 @@ import { Result } from '../Result';
 import './styles.css';
 
 export const Quiz = () => {
-    const [count, setCount] = useState(0);
-    const [result, setResult] = useState(false);
-    const [score, setScore] = useState(0);
-    const [correctAnswer, setCorrectAnswer] = useState(0)
-    const [clickedIndex, setClickedIndex] = useState(null);
-    const [timer, setTimer] = useState(20);
+	const [currentQuestionNumber, setCurrentQuestionNumber] = useState(0);
+	const [quizCompleted, setQuizCompleted] = useState(false);
+	const [score, setScore] = useState(0);
+	const [correctAnswer, setCorrectAnswer] = useState(0);
+	const [clickedIndex, setClickedIndex] = useState(null);
+	const [timer, setTimer] = useState(20);
+	const [currentOptions, setCurrentOptions] = useState([]);
 
-    const handleClick = (isCorrect, index) => {
+	useEffect(() => {
+		const currentOptionsEnriched = drop[
+			currentQuestionNumber
+		].answerOptions.map((option) => {
+			return { ...option, className: 'btn' };
+		});
 
-        if (isCorrect) {
-            setScore((prev) => prev + 10);
-            setCorrectAnswer((prev) => prev + 1);
-        }
+		setCurrentOptions(currentOptionsEnriched);
+	}, [currentQuestionNumber]);
 
-        setClickedIndex(index);
+	const onOptionSelect = (isCorrect, index) => {
+		setCurrentOptions((prev) => {
+			const updatedOptions = prev.map((option) => {
+				if (option.id === index) {
+					return {
+						...option,
+						className: isCorrect ? 'btn btn--success' : 'btn btn--failed',
+					};
+				} else return option;
+			});
 
-        const next = count + 1;
-        if (next < drop.length) {
-            setTimeout(() => {
-                setCount(next);
-                setClickedIndex(null);
-                setTimer(20)
-            }, 1000);
-        } else {
-            setResult(true);
-            setClickedIndex(null);
-        }
+			return updatedOptions;
+		});
 
-    };
+		if (isCorrect) {
+			setScore((prev) => prev + 10);
+			setCorrectAnswer((prev) => prev + 1);
+		}
 
-    const handleReturn = () => {
-        setResult(false);
-        setCount(0);
-        setScore(0);
-        setClickedIndex(null);
-        setCorrectAnswer(0);
-        setTimer(20)
-    };
+		setClickedIndex(index);
 
-    useEffect(() => {
-        const next = count + 1;
-        const numberCount = timer - 1
-        const interval = setInterval(() => {
-            if (numberCount > 0) {
-                setTimer(numberCount);
-            }
-            if (numberCount === 0 && next < drop.length) {
-                setCount(next);
-                setTimer(20);
-            } else if (count >= drop.length) {
+		const next = currentQuestionNumber + 1;
+		setTimeout(() => {
+			if (next < drop.length) {
+				setCurrentQuestionNumber(next);
+				setClickedIndex(null);
+				setTimer(20);
+			} else {
+				setQuizCompleted(true);
+				setClickedIndex(null);
+			}
+		}, 1000);
+	};
 
-                setResult(true);
-                setClickedIndex(null);
+	const handleReturn = () => {
+		setQuizCompleted(false);
+		setCurrentQuestionNumber(0);
+		setScore(0);
+		setClickedIndex(null);
+		setCorrectAnswer(0);
+		setTimer(20);
+	};
 
+	useEffect(() => {
+		const next = currentQuestionNumber + 1;
+		const numberCount = timer - 1;
+		const interval = setInterval(() => {
+			if (numberCount > 0) {
+				setTimer(numberCount);
+			}
+			if (numberCount === 0 && next < drop.length) {
+				setCurrentQuestionNumber(next);
+				setTimer(20);
+			} else if (currentQuestionNumber >= drop.length) {
+				setQuizCompleted(true);
+				setClickedIndex(null);
+			}
+		}, 1000);
+		return () => clearInterval(interval);
+	}, [timer]);
 
-            }
-        }, 1000)
-        return () => clearInterval(interval);
-    }, [timer])
-
-    return (
-        <div className='quiz-container'>
-            {result ? (
-                <Result score={score} handleReturn={handleReturn} correctAnswer={correctAnswer} />
-            ) : (
-                <>
-                    <div className='quiz-header'>
-                        <p>Question {count + 1}/{drop.length}</p>
-                        <span>{timer}</span>
-                    </div>
-                    <div >
-                        <h2>{drop[count].questionText}</h2>
-                        <div className='option-container'>
-                            {drop[count].answerOptions.map((option, index) => (
-                                <button
-                                    disabled={clickedIndex}
-                                    key={index}
-                                    onClick={() => handleClick(option.isCorrect, index)}
-                                    className={clickedIndex === index ? (option.isCorrect ? 'btn btn--success' : 'btn btn--failed') : 'btn'}
-                                >
-                                    {option.answerText}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </>
-            )}
-        </div>
-    );
+	return (
+		<div className='quiz-container'>
+			{quizCompleted ? (
+				<Result
+					score={score}
+					handleReturn={handleReturn}
+					correctAnswer={correctAnswer}
+				/>
+			) : (
+				<>
+					<div className='quiz-header'>
+						<p>
+							Question {currentQuestionNumber + 1}/{drop.length}
+						</p>
+						<span>{timer}</span>
+					</div>
+					<div>
+						<h2>{drop[currentQuestionNumber].questionText}</h2>
+						<div className='option-container'>
+							{currentOptions.map((option) => (
+								<OptionButton
+									key={option.id}
+									option={option}
+									disabled={clickedIndex}
+									onOptionSelect={onOptionSelect}
+								/>
+							))}
+						</div>
+					</div>
+				</>
+			)}
+		</div>
+	);
 };
 
-
-
-
-
-
-
-
-
+const OptionButton = ({ option, disabled, onOptionSelect }) => {
+	return (
+		<button
+			disabled={disabled}
+			onClick={() => onOptionSelect(option.isCorrect, option.id)}
+			className={option.className}
+		>
+			{option.answerText}
+		</button>
+	);
+};
